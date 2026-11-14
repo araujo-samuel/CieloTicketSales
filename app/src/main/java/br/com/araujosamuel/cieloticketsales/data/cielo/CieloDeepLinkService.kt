@@ -56,10 +56,17 @@ class CieloDeepLinkService(
     /**
      * Constrói a URI de pagamento para ser lançada via Intent.
      *
+     * IMPORTANTE: usa Uri.Builder + appendQueryParameter (NÃO Uri.parse com string direta).
+     * O Base64 padrão contém os caracteres '+', '/' e '=' que são especiais em URLs.
+     * Uri.parse() não faz percent-encoding dos parâmetros — isso corrompia o JSON
+     * no lado do Cielo (erro: "Json inválido, order: null").
+     * appendQueryParameter() aplica percent-encoding automático, garantindo que o
+     * Cielo decodifique corretamente.
+     *
      * @param orderId UUID da compra — chave de idempotência
      * @param amountInCents valor total em centavos
      * @param paymentCode forma de pagamento (default: CREDITO_AVISTA)
-     * @return Uri no formato lio://payment?request={base64}&urlCallback=order://response
+     * @return Uri no formato lio://payment?request={base64_encoded}&urlCallback=order%3A%2F%2Fresponse
      */
     fun buildPaymentUri(
         orderId: String,
@@ -80,7 +87,12 @@ class CieloDeepLinkService(
             json.toByteArray(Charsets.UTF_8),
             Base64.NO_WRAP
         )
-        return Uri.parse("lio://payment?request=$base64&urlCallback=$CALLBACK_URI")
+        return Uri.Builder()
+            .scheme("lio")
+            .authority("payment")
+            .appendQueryParameter("request", base64)
+            .appendQueryParameter("urlCallback", CALLBACK_URI)
+            .build()
     }
 
     /**
