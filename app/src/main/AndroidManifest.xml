@@ -7,11 +7,21 @@
     <!--
         Obrigatório no Android 11+ para detectar o serviço Cielo Smart instalado.
         Sem esta declaração o sistema não permite que o app detecte e envie intents
-        para o pacote com.ads.lio.uriappclient.
+        para o pacote do Cielo Smart.
         Ref: https://docs.cielo.com.br/cielo-smart/docs/configurando-o-android-manifest
+
+        Nota: o emulador Cielo Smart (v1.61.8+) usa o pacote br.com.cielosmart.orderservice.
+        O pacote legado com.ads.lio.uriappclient era da versão anterior (LIO).
+        Ambos são declarados para compatibilidade com os dois ambientes.
     -->
     <queries>
+        <package android:name="br.com.cielosmart.orderservice" />
         <package android:name="com.ads.lio.uriappclient" />
+        <!-- Permite detectar qualquer app que trate o scheme lio:// -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="lio" />
+        </intent>
     </queries>
 
     <application

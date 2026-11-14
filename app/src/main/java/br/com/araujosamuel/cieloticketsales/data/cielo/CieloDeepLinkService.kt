@@ -43,8 +43,14 @@ class CieloDeepLinkService(
          */
         const val CALLBACK_URI = "order://response"
 
-        /** Pacote do serviço Cielo Smart — verificado antes de lançar o deep link */
-        const val CIELO_PACKAGE = "com.ads.lio.uriappclient"
+        /**
+         * Pacote do serviço Cielo Smart (emulador v1.61.8+).
+         * Nota: a versão legada LIO usava "com.ads.lio.uriappclient".
+         * O emulador atual usa "br.com.cielosmart.orderservice".
+         * A detecção real é feita pelo scheme "lio://" via queryIntentActivities.
+         */
+        const val CIELO_PACKAGE = "br.com.cielosmart.orderservice"
+        const val CIELO_PACKAGE_LEGACY = "com.ads.lio.uriappclient"
     }
 
     /**
