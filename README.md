@@ -44,23 +44,23 @@ Ou via linha de comando:
 
 ## Arquitetura
 
-### Padrão: MVVM + Clean Architecture (simplificado)
+### Padrão: MVI + Clean Architecture
 
 ```
-Presentation (Compose + ViewModel)
+Presentation (Compose + ViewModel + sealed Intent)
       ↓
   Domain (UseCases + Entities)
       ↓
   Data (Room + Repositories + Cielo)
 ```
 
-**Presentation**: Telas Jetpack Compose + ViewModels com StateFlow. Cada tela tem seu próprio ViewModel isolado. Navegação via Navigation Compose.
+**Presentation**: Telas Jetpack Compose + ViewModels com StateFlow. Cada tela define uma `sealed class XIntent` como contrato único de entrada; a UI apenas chama `processIntent()` e observa o `UiState` imutável. Navegação via Navigation Compose com `hiltViewModel()`.
 
 **Domain**: Entidades puras (`Event`, `Purchase`) e Use Cases que encapsulam a lógica de negócio (`CreatePurchaseOrderUseCase`, `UpdatePurchaseResultUseCase`). Sem dependência de frameworks Android.
 
 **Data**: Repositórios que abstraem as fontes de dados. `EventRepositoryImpl` fornece eventos mockados. `PurchaseRepositoryImpl` persiste no Room. `CieloDeepLinkService` encapsula toda a integração com a Cielo.
 
-**DI manual via `AppContainer`**: evita a complexidade de Hilt para o escopo do projeto, tornando as dependências explícitas e fáceis de rastrear em code review.
+**DI via Hilt**: `@HiltViewModel` em todos os ViewModels; `SavedStateHandle` injetado automaticamente para navegação type-safe; verificação de dependências em tempo de compilação.
 
 ---
 
@@ -158,10 +158,10 @@ Para o emulador Cielo, são usados valores de placeholder (`CLIENT_ID_EMULADOR`)
 **Motivo**: Padrão atual do ecossistema Android; mais testável; código mais conciso.  
 **Contra**: Curva de aprendizado; interoperabilidade com bibliotecas legadas pode ser complexa.
 
-### DI manual vs Hilt
-**Escolha**: DI manual (`AppContainer`)  
-**Motivo**: Simplicidade e transparência para o escopo do projeto. Todas as dependências visíveis em um arquivo.  
-**Contra**: Sem gerenciamento automático de escopos; menos escalável para projetos maiores.
+### Hilt vs DI manual
+**Escolha**: Hilt  
+**Motivo**: Verificação de dependências em compile-time; `@HiltViewModel` com `SavedStateHandle` automático; padrão recomendado pelo Android Jetpack.  
+**Contra**: Annotation processing adicional (via KSP); requer `@HiltAndroidApp` / `@AndroidEntryPoint` em todos os pontos de entrada.
 
 ### Room vs SharedPreferences
 **Escolha**: Room  
