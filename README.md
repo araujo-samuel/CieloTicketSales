@@ -22,7 +22,7 @@ App Android para venda de ingressos de eventos com pagamento integrado via Cielo
 ### Executar o app
 
 ```bash
-git clone https://github.com/araujo.samuel/CieloTicketSales.git
+git clone https://github.com/araujo-samuel/CieloTicketSales.git
 cd CieloTicketSales
 # Abra no Android Studio e clique em Run App
 ```
