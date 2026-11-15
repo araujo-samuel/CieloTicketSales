@@ -90,7 +90,9 @@ class CheckoutViewModel(
         val paymentUri = cieloDeepLinkService.buildPaymentUri(
             orderId = purchase.id,
             amountInCents = purchase.totalAmountInCents,
-            paymentCode = state.selectedPaymentCode
+            paymentCode = state.selectedPaymentCode,
+            eventName = purchase.eventName,
+            quantity = purchase.quantity
         )
 
         // Verifica se o Cielo Smart está instalado antes de lançar

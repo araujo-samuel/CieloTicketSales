@@ -2,6 +2,8 @@ package br.com.araujosamuel.cieloticketsales.data.cielo
 
 import android.net.Uri
 import android.util.Base64
+import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloOrderItem
+import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloOrderResponse
 import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloPaymentError
 import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloPaymentRequest
 import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloPaymentResponse
@@ -63,30 +65,63 @@ class CieloDeepLinkService(
      * appendQueryParameter() aplica percent-encoding automático, garantindo que o
      * Cielo decodifique corretamente.
      *
+     * Formato correto do JSON (descoberto via análise do sample oficial):
+     * - [value]: String em REAIS (ex: "80.00"), NÃO em centavos
+     * - [items]: lista de produtos obrigatória
+     * - [installments]: 0 para pagamento à vista (NÃO 1)
+     *
      * @param orderId UUID da compra — chave de idempotência
      * @param amountInCents valor total em centavos
      * @param paymentCode forma de pagamento (default: CREDITO_AVISTA)
+     * @param eventName nome do evento (usado como nome do item)
+     * @param quantity quantidade de ingressos
      * @return Uri no formato lio://payment?request={base64_encoded}&urlCallback=order%3A%2F%2Fresponse
      */
-    fun buildPaymentUri(
+    /**
+     * Constrói o payload JSON do pedido e retorna a string Base64 pronta para a URI.
+     *
+     * Exposta como `internal` para permitir testes unitários sem dependência de
+     * `android.net.Uri.Builder`, que não está disponível no ambiente JVM dos testes unitários.
+     * [buildPaymentUri] delega a esta função e só adiciona a camada de URI.
+     */
+    internal fun buildPaymentRequestBase64(
         orderId: String,
         amountInCents: Int,
-        paymentCode: String = "CREDITO_AVISTA"
-    ): Uri {
+        paymentCode: String = "CREDITO_AVISTA",
+        eventName: String = "Ingresso",
+        quantity: Int = 1
+    ): String {
+        val unitPriceReais = (amountInCents.toDouble() / quantity) / 100.0
+        val totalReais = "%.2f".format(amountInCents / 100.0)
+
         val request = CieloPaymentRequest(
             accessToken = ACCESS_TOKEN,
             clientID = CLIENT_ID,
-            paymentCode = paymentCode,
-            amount = amountInCents,
-            installments = 1,
             email = "",
-            orderId = orderId
+            installments = 0,
+            items = listOf(
+                CieloOrderItem(
+                    name = eventName.ifBlank { "Ingresso" },
+                    quantity = quantity,
+                    sku = orderId.takeLast(8),
+                    unitPrice = unitPriceReais
+                )
+            ),
+            paymentCode = paymentCode,
+            value = totalReais
         )
         val json = gson.toJson(request)
-        val base64 = Base64.encodeToString(
-            json.toByteArray(Charsets.UTF_8),
-            Base64.NO_WRAP
-        )
+        return Base64.encodeToString(json.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+    }
+
+    fun buildPaymentUri(
+        orderId: String,
+        amountInCents: Int,
+        paymentCode: String = "CREDITO_AVISTA",
+        eventName: String = "Ingresso",
+        quantity: Int = 1
+    ): Uri {
+        val base64 = buildPaymentRequestBase64(orderId, amountInCents, paymentCode, eventName, quantity)
         return Uri.Builder()
             .scheme("lio")
             .authority("payment")
@@ -98,12 +133,21 @@ class CieloDeepLinkService(
     /**
      * Interpreta a URI de retorno do Cielo Smart.
      *
-     * O Cielo Smart pode retornar dois parâmetros na URI:
-     * - "response": Base64 JSON com dados do pagamento aprovado/cancelado
-     * - "error": Base64 JSON com código e motivo do erro
+     * O Cielo Smart retorna um objeto Order completo serializado em Base64 no parâmetro "response".
+     * A estrutura real (confirmada via logcat com emulador v1.61.8) é:
+     *   { "status": "PAID", "payments": [{ "authCode": "...", "cieloCode": "...", "brand": "..." }] }
      *
-     * @param uri URI recebida pela ResponseActivity
-     * @return [CieloPaymentResponse] com statusCode e dados da transação
+     * Mapeamento de status:
+     *   Order.status == "PAID" → statusCode = 1 (APPROVED)
+     *   qualquer outro valor   → statusCode = 2 (CANCELLED)
+     *
+     * Nota: Base64.DEFAULT é usado para decodificação pois o Cielo emulador envia o Base64
+     * com quebras de linha (\n) incorporadas — DEFAULT ignora whitespace, NO_WRAP não.
+     *
+     * Em caso de erro interno, o parâmetro "error" carrega um JSON { "code": N, "reason": "..." }.
+     *
+     * @param uri URI recebida pela ResponseActivity (scheme: order://response)
+     * @return [CieloPaymentResponse] normalizado com statusCode e dados da transação
      */
     fun parsePaymentResponse(uri: Uri): CieloPaymentResponse {
         val responseBase64 = uri.getQueryParameter("response")
@@ -113,10 +157,19 @@ class CieloDeepLinkService(
             responseBase64 != null -> {
                 runCatching {
                     val json = String(
-                        Base64.decode(responseBase64, Base64.NO_WRAP),
+                        Base64.decode(responseBase64, Base64.DEFAULT),
                         Charsets.UTF_8
                     )
-                    gson.fromJson(json, CieloPaymentResponse::class.java)
+                    val order = gson.fromJson(json, CieloOrderResponse::class.java)
+                    val payment = order.payments.firstOrNull()
+                    CieloPaymentResponse(
+                        statusCode = if (order.status.equals("PAID", ignoreCase = true)) 1 else 2,
+                        authCode = payment?.authCode,
+                        cieloCode = payment?.cieloCode,
+                        brand = payment?.brand,
+                        amount = payment?.amount,
+                        installments = payment?.installments
+                    )
                 }.getOrElse {
                     CieloPaymentResponse(
                         statusCode = 3,
@@ -128,7 +181,7 @@ class CieloDeepLinkService(
             errorBase64 != null -> {
                 runCatching {
                     val json = String(
-                        Base64.decode(errorBase64, Base64.NO_WRAP),
+                        Base64.decode(errorBase64, Base64.DEFAULT),
                         Charsets.UTF_8
                     )
                     val error = gson.fromJson(json, CieloPaymentError::class.java)

@@ -76,7 +76,7 @@ O app utiliza Deep Link, a abordagem **recomendada pela Cielo** para aplicativos
 1. Usuário confirma compra no CheckoutScreen
        ↓
 2. CieloDeepLinkService monta JSON do pedido:
-   { accessToken, clientID, paymentCode, amount, orderId }
+   { accessToken, clientID, paymentCode, value (reais), items, installments: 0 }
        ↓
 3. JSON é codificado em Base64
        ↓

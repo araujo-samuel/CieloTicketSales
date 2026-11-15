@@ -198,7 +198,8 @@ O PM Agent leu o arquivo `Case Android.pdf` e extraiu:
 | `docs.cielo.com.br/cielo-smart/docs/configurando-o-android-manifest` | `<queries>` para `com.ads.lio.uriappclient`; `ResponseActivity` com scheme `order` | Configuração do AndroidManifest |
 | `docs.cielo.com.br/cielo-smart/docs/codigos-de-erro` | Erros em Base64 JSON: code 1=cancelado, 2=genérico, 3=falha, 4=autenticação | Tratamento de erros em `CieloDeepLinkService` |
 | `docs.cielo.com.br/cielo-smart/docs/modelos-de-integracao` | Dois modelos: Deep Link e Remote API | Confirmou Deep Link como melhor opção |
-| `github.com/DeveloperCielo/LIO-SDK-Sample-Integracao-Local` | Format do JSON de request; campos de response (authCode, cieloCode, statusCode=1 aprovado, =2 cancelado); URL format `lio://payment?request={base64}&urlCallback=order://response` | Modelagem completa dos modelos de dados; URI format |
+| `github.com/DeveloperCielo/LIO-SDK-Sample-Integracao-Local` | Format do JSON de request: `{ value (String em reais), items (obrigatório), installments: 0 (à vista) }`. URL format `lio://payment?request={base64}&urlCallback=order://response`. **Nota**: formato do response diverge do sample — ver linha abaixo | Modelagem de CieloPaymentRequest; URI format |
+| Logcat com emulador v1.61.8 (análise em runtime) | O Cielo Smart retorna um objeto `Order` completo no parâmetro `response`: `{ "status": "PAID", "payments": [{ "authCode", "cieloCode", "brand" }] }` — sem campo `statusCode` no topo. Base64 gerado com quebras de linha (`\n`), requer `Base64.DEFAULT` ao decodificar. | Reformulação completa de `CieloOrderResponse`; atualização de `parsePaymentResponse()` |
 
 ### 4.4 Restrições configuradas para a implementação
 
@@ -235,7 +236,7 @@ O PM Agent leu o arquivo `Case Android.pdf` e extraiu:
 | Arquivo | Cenários testados |
 |---|---|
 | `CreatePurchaseOrderUseCaseTest` | Criação com UUID único; idempotência (reutiliza PENDING); cálculo correto do total; validação de quantidade inválida |
-| `CieloDeepLinkServiceTest` | URI tem scheme `lio://`; urlCallback correto; orderId no Base64; parsing de aprovação; parsing de cancelamento; parsing de erro genérico; URI sem parâmetros |
+| `CieloDeepLinkServiceTest` | JSON decodificável; `value` em reais como String; `installments=0` para à vista; campo `items` obrigatório com nome do evento; SKU derivado do orderId; constante `CALLBACK_URI`; parsing de aprovação (`status=PAID`→statusCode=1); parsing de cancelamento pelo usuário; parsing de erro genérico; URI sem parâmetros |
 | `UpdatePurchaseResultUseCaseTest` | statusCode 1→APPROVED; statusCode 2→CANCELLED; statusCode 3→DENIED; statusCode 4→DENIED; dados de aprovação persistidos; motivo do erro persistido |
 | `PurchaseEntityMappingTest` | Purchase→Entity preserva campos; Entity→Purchase recupera enum; round-trip consistente; formatação de preço (R$100,00; R$12,50; R$0,99) |
 
