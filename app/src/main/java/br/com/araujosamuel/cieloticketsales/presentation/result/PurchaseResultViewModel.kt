@@ -1,14 +1,16 @@
 package br.com.araujosamuel.cieloticketsales.presentation.result
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import br.com.araujosamuel.cieloticketsales.domain.usecase.GetPurchasesUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class PurchaseResultUiState(
     val purchase: Purchase? = null,
@@ -16,10 +18,13 @@ data class PurchaseResultUiState(
     val error: String? = null
 )
 
-class PurchaseResultViewModel(
-    private val purchaseId: String,
+@HiltViewModel
+class PurchaseResultViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val getPurchasesUseCase: GetPurchasesUseCase
 ) : ViewModel() {
+
+    private val purchaseId: String = savedStateHandle["purchaseId"] ?: ""
 
     private val _uiState = MutableStateFlow(PurchaseResultUiState(isLoading = true))
     val uiState: StateFlow<PurchaseResultUiState> = _uiState.asStateFlow()
@@ -42,14 +47,5 @@ class PurchaseResultViewModel(
                     _uiState.value = PurchaseResultUiState(error = error.message ?: "Erro ao carregar compra")
                 }
         }
-    }
-
-    class Factory(
-        private val purchaseId: String,
-        private val getPurchasesUseCase: GetPurchasesUseCase
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PurchaseResultViewModel(purchaseId, getPurchasesUseCase) as T
     }
 }

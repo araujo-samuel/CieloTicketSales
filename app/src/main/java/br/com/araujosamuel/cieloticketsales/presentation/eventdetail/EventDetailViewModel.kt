@@ -1,15 +1,17 @@
 package br.com.araujosamuel.cieloticketsales.presentation.eventdetail
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.data.repository.EventRepository
 import br.com.araujosamuel.cieloticketsales.domain.model.Event
 import br.com.araujosamuel.cieloticketsales.domain.usecase.CreatePurchaseOrderUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class EventDetailUiState(
     val event: Event? = null,
@@ -21,17 +23,36 @@ data class EventDetailUiState(
     val totalInCents: Int get() = (event?.priceInCents ?: 0) * quantity
 }
 
-class EventDetailViewModel(
-    private val eventId: String,
+sealed class EventDetailIntent {
+    object IncrementQuantity : EventDetailIntent()
+    object DecrementQuantity : EventDetailIntent()
+    object BuyClicked : EventDetailIntent()
+    object NavigationConsumed : EventDetailIntent()
+}
+
+@HiltViewModel
+class EventDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val eventRepository: EventRepository,
     private val createPurchaseOrderUseCase: CreatePurchaseOrderUseCase
 ) : ViewModel() {
+
+    private val eventId: String = savedStateHandle["eventId"] ?: ""
 
     private val _uiState = MutableStateFlow(EventDetailUiState(isLoading = true))
     val uiState: StateFlow<EventDetailUiState> = _uiState.asStateFlow()
 
     init {
         loadEvent()
+    }
+
+    fun processIntent(intent: EventDetailIntent) {
+        when (intent) {
+            is EventDetailIntent.IncrementQuantity -> incrementQuantity()
+            is EventDetailIntent.DecrementQuantity -> decrementQuantity()
+            is EventDetailIntent.BuyClicked -> onBuyClicked()
+            is EventDetailIntent.NavigationConsumed -> onNavigationConsumed()
+        }
     }
 
     private fun loadEvent() {
@@ -46,7 +67,7 @@ class EventDetailViewModel(
         }
     }
 
-    fun incrementQuantity() {
+    private fun incrementQuantity() {
         val current = _uiState.value
         val max = current.event?.availableTickets ?: 10
         if (current.quantity < minOf(max, 10)) {
@@ -54,14 +75,14 @@ class EventDetailViewModel(
         }
     }
 
-    fun decrementQuantity() {
+    private fun decrementQuantity() {
         val current = _uiState.value
         if (current.quantity > 1) {
             _uiState.value = current.copy(quantity = current.quantity - 1)
         }
     }
 
-    fun onBuyClicked() {
+    private fun onBuyClicked() {
         val state = _uiState.value
         val event = state.event ?: return
 
@@ -83,17 +104,7 @@ class EventDetailViewModel(
         }
     }
 
-    fun onNavigationConsumed() {
+    private fun onNavigationConsumed() {
         _uiState.value = _uiState.value.copy(navigateToPurchaseId = null)
-    }
-
-    class Factory(
-        private val eventId: String,
-        private val eventRepository: EventRepository,
-        private val createPurchaseOrderUseCase: CreatePurchaseOrderUseCase
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            EventDetailViewModel(eventId, eventRepository, createPurchaseOrderUseCase) as T
     }
 }

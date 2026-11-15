@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
 }
 
 android {
@@ -40,6 +41,13 @@ android {
     }
 }
 
+// JavaPoet 1.13.0 é necessário para o Hilt funcionar com AGP 8.x
+// AGP 8.13.2 inclui uma versão de JavaPoet sem o método canonicalName(),
+// que o plugin do Hilt requer. Forçar a versão correta resolve o conflito.
+configurations.all {
+    resolutionStrategy.force("com.squareup:javapoet:1.13.0")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -70,6 +78,11 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Hilt — injeção de dependências
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 
     // Testes
     testImplementation(libs.junit)

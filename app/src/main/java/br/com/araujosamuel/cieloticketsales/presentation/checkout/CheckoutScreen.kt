@@ -29,7 +29,7 @@ fun CheckoutScreen(
 
     LaunchedEffect(uiState.navigateToResultId) {
         uiState.navigateToResultId?.let { id ->
-            viewModel.onNavigationConsumed()
+            viewModel.processIntent(CheckoutIntent.NavigationConsumed)
             onNavigateToResult(id)
         }
     }
@@ -113,7 +113,7 @@ fun CheckoutScreen(
                                                 .fillMaxWidth()
                                                 .selectable(
                                                     selected = uiState.selectedPaymentCode == code,
-                                                    onClick = { viewModel.selectPaymentCode(code) },
+                                                    onClick = { viewModel.processIntent(CheckoutIntent.SelectPaymentCode(code)) },
                                                     role = Role.RadioButton,
                                                     enabled = !uiState.isAwaitingCielo
                                                 )
@@ -170,7 +170,7 @@ fun CheckoutScreen(
 
                         // Botão principal
                         Button(
-                            onClick = { viewModel.initiatePayment(context) },
+                            onClick = { viewModel.processIntent(CheckoutIntent.InitiatePayment(context)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
