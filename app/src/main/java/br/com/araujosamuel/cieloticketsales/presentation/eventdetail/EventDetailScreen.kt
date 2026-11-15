@@ -27,7 +27,7 @@ fun EventDetailScreen(
     // Navegar para checkout quando a ordem for criada
     LaunchedEffect(uiState.navigateToPurchaseId) {
         uiState.navigateToPurchaseId?.let { purchaseId ->
-            viewModel.onNavigationConsumed()
+            viewModel.processIntent(EventDetailIntent.NavigationConsumed)
             onNavigateToCheckout(purchaseId)
         }
     }
@@ -145,7 +145,7 @@ fun EventDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     OutlinedButton(
-                                        onClick = { viewModel.decrementQuantity() },
+                                        onClick = { viewModel.processIntent(EventDetailIntent.DecrementQuantity) },
                                         enabled = uiState.quantity > 1
                                     ) {
                                         Text("−", style = MaterialTheme.typography.titleLarge)
@@ -158,7 +158,7 @@ fun EventDetailScreen(
                                     )
 
                                     OutlinedButton(
-                                        onClick = { viewModel.incrementQuantity() },
+                                        onClick = { viewModel.processIntent(EventDetailIntent.IncrementQuantity) },
                                         enabled = uiState.quantity < minOf(event.availableTickets, 10)
                                     ) {
                                         Text("+", style = MaterialTheme.typography.titleLarge)
@@ -190,7 +190,7 @@ fun EventDetailScreen(
 
                         // Botão de compra
                         Button(
-                            onClick = { viewModel.onBuyClicked() },
+                            onClick = { viewModel.processIntent(EventDetailIntent.BuyClicked) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),

@@ -3,10 +3,11 @@ package br.com.araujosamuel.cieloticketsales.presentation.checkout
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.data.cielo.CieloDeepLinkService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
 import br.com.araujosamuel.cieloticketsales.domain.usecase.GetPurchasesUseCase
@@ -16,6 +17,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+sealed class CheckoutIntent {
+    data class SelectPaymentCode(val code: String) : CheckoutIntent()
+    data class InitiatePayment(val context: Context) : CheckoutIntent()
+    object NavigationConsumed : CheckoutIntent()
+}
 
 data class CheckoutUiState(
     val purchase: Purchase? = null,
@@ -26,12 +34,15 @@ data class CheckoutUiState(
     val navigateToResultId: String? = null
 )
 
-class CheckoutViewModel(
-    private val purchaseId: String,
+@HiltViewModel
+class CheckoutViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val getPurchasesUseCase: GetPurchasesUseCase,
     private val updatePurchaseResultUseCase: UpdatePurchaseResultUseCase,
     private val cieloDeepLinkService: CieloDeepLinkService
 ) : ViewModel() {
+
+    private val purchaseId: String = savedStateHandle["purchaseId"] ?: ""
 
     private val _uiState = MutableStateFlow(CheckoutUiState(isLoading = true))
     val uiState: StateFlow<CheckoutUiState> = _uiState.asStateFlow()
@@ -69,7 +80,15 @@ class CheckoutViewModel(
         }
     }
 
-    fun selectPaymentCode(code: String) {
+    fun processIntent(intent: CheckoutIntent) {
+        when (intent) {
+            is CheckoutIntent.SelectPaymentCode -> selectPaymentCode(intent.code)
+            is CheckoutIntent.InitiatePayment -> initiatePayment(intent.context)
+            is CheckoutIntent.NavigationConsumed -> onNavigationConsumed()
+        }
+    }
+
+    private fun selectPaymentCode(code: String) {
         _uiState.value = _uiState.value.copy(selectedPaymentCode = code)
     }
 
@@ -80,7 +99,7 @@ class CheckoutViewModel(
      * Mesmo que o usuário clique em "Pagar" várias vezes, o orderId enviado ao Cielo
      * é sempre o mesmo UUID, o que previne cobranças duplicadas.
      */
-    fun initiatePayment(context: Context) {
+    private fun initiatePayment(context: Context) {
         val state = _uiState.value
         val purchase = state.purchase ?: return
 
@@ -134,23 +153,7 @@ class CheckoutViewModel(
         }
     }
 
-    fun onNavigationConsumed() {
+    private fun onNavigationConsumed() {
         _uiState.value = _uiState.value.copy(navigateToResultId = null)
-    }
-
-    class Factory(
-        private val purchaseId: String,
-        private val getPurchasesUseCase: GetPurchasesUseCase,
-        private val updatePurchaseResultUseCase: UpdatePurchaseResultUseCase,
-        private val cieloDeepLinkService: CieloDeepLinkService
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            CheckoutViewModel(
-                purchaseId,
-                getPurchasesUseCase,
-                updatePurchaseResultUseCase,
-                cieloDeepLinkService
-            ) as T
     }
 }

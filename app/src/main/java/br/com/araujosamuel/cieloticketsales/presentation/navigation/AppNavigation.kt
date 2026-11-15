@@ -1,11 +1,10 @@
 package br.com.araujosamuel.cieloticketsales.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import br.com.araujosamuel.cieloticketsales.CieloTicketSalesApp
 import br.com.araujosamuel.cieloticketsales.presentation.checkout.CheckoutScreen
 import br.com.araujosamuel.cieloticketsales.presentation.checkout.CheckoutViewModel
 import br.com.araujosamuel.cieloticketsales.presentation.eventdetail.EventDetailScreen
@@ -30,20 +29,13 @@ object Routes {
 }
 
 @Composable
-fun AppNavigation(
-    navController: NavHostController,
-    app: CieloTicketSalesApp
-) {
-    val container = app.container
-
+fun AppNavigation(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = Routes.EVENT_LIST
     ) {
         composable(Routes.EVENT_LIST) {
-            val viewModel: EventListViewModel = viewModel(
-                factory = EventListViewModel.Factory(container.getEventsUseCase)
-            )
+            val viewModel: EventListViewModel = hiltViewModel()
             EventListScreen(
                 viewModel = viewModel,
                 onEventClick = { eventId ->
@@ -55,15 +47,8 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.EVENT_DETAIL) { backStackEntry ->
-            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
-            val viewModel: EventDetailViewModel = viewModel(
-                factory = EventDetailViewModel.Factory(
-                    eventId = eventId,
-                    eventRepository = container.eventRepository,
-                    createPurchaseOrderUseCase = container.createPurchaseOrderUseCase
-                )
-            )
+        composable(Routes.EVENT_DETAIL) {
+            val viewModel: EventDetailViewModel = hiltViewModel()
             EventDetailScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
@@ -73,16 +58,8 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.CHECKOUT) { backStackEntry ->
-            val purchaseId = backStackEntry.arguments?.getString("purchaseId") ?: return@composable
-            val viewModel: CheckoutViewModel = viewModel(
-                factory = CheckoutViewModel.Factory(
-                    purchaseId = purchaseId,
-                    getPurchasesUseCase = container.getPurchasesUseCase,
-                    updatePurchaseResultUseCase = container.updatePurchaseResultUseCase,
-                    cieloDeepLinkService = container.cieloDeepLinkService
-                )
-            )
+        composable(Routes.CHECKOUT) {
+            val viewModel: CheckoutViewModel = hiltViewModel()
             CheckoutScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
@@ -95,14 +72,8 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.PURCHASE_RESULT) { backStackEntry ->
-            val purchaseId = backStackEntry.arguments?.getString("purchaseId") ?: return@composable
-            val viewModel: PurchaseResultViewModel = viewModel(
-                factory = PurchaseResultViewModel.Factory(
-                    purchaseId = purchaseId,
-                    getPurchasesUseCase = container.getPurchasesUseCase
-                )
-            )
+        composable(Routes.PURCHASE_RESULT) {
+            val viewModel: PurchaseResultViewModel = hiltViewModel()
             PurchaseResultScreen(
                 viewModel = viewModel,
                 onBackToHome = {
@@ -114,9 +85,7 @@ fun AppNavigation(
         }
 
         composable(Routes.PURCHASE_HISTORY) {
-            val viewModel: PurchaseHistoryViewModel = viewModel(
-                factory = PurchaseHistoryViewModel.Factory(container.getPurchasesUseCase)
-            )
+            val viewModel: PurchaseHistoryViewModel = hiltViewModel()
             PurchaseHistoryScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },

@@ -1,14 +1,15 @@
 package br.com.araujosamuel.cieloticketsales.presentation.eventlist
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.domain.model.Event
 import br.com.araujosamuel.cieloticketsales.domain.usecase.GetEventsUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class EventListUiState(
     val events: List<Event> = emptyList(),
@@ -16,7 +17,12 @@ data class EventListUiState(
     val error: String? = null
 )
 
-class EventListViewModel(
+sealed class EventListIntent {
+    object RetryLoad : EventListIntent()
+}
+
+@HiltViewModel
+class EventListViewModel @Inject constructor(
     private val getEventsUseCase: GetEventsUseCase
 ) : ViewModel() {
 
@@ -27,7 +33,13 @@ class EventListViewModel(
         loadEvents()
     }
 
-    fun loadEvents() {
+    fun processIntent(intent: EventListIntent) {
+        when (intent) {
+            is EventListIntent.RetryLoad -> loadEvents()
+        }
+    }
+
+    private fun loadEvents() {
         viewModelScope.launch {
             _uiState.value = EventListUiState(isLoading = true)
             runCatching { getEventsUseCase() }
@@ -38,11 +50,5 @@ class EventListViewModel(
                     _uiState.value = EventListUiState(error = error.message ?: "Erro ao carregar eventos")
                 }
         }
-    }
-
-    class Factory(private val getEventsUseCase: GetEventsUseCase) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            EventListViewModel(getEventsUseCase) as T
     }
 }

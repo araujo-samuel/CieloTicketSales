@@ -11,7 +11,9 @@ import br.com.araujosamuel.cieloticketsales.presentation.PaymentResultChannel
 import br.com.araujosamuel.cieloticketsales.presentation.ResponseActivity
 import br.com.araujosamuel.cieloticketsales.presentation.navigation.AppNavigation
 import br.com.araujosamuel.cieloticketsales.ui.theme.CieloTicketSalesTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,10 +26,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CieloTicketSalesTheme {
                 val navController = rememberNavController()
-                AppNavigation(
-                    navController = navController,
-                    app = application as CieloTicketSalesApp
-                )
+                AppNavigation(navController = navController)
             }
         }
     }

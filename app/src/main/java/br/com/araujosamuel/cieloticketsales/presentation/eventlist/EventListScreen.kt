@@ -63,7 +63,7 @@ fun EventListScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.loadEvents() }) {
+                        Button(onClick = { viewModel.processIntent(EventListIntent.RetryLoad) }) {
                             Text("Tentar novamente")
                         }
                     }

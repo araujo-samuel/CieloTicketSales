@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import br.com.araujosamuel.cieloticketsales.MainActivity
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Activity responsável por capturar o retorno do Cielo Smart via Deep Link.
@@ -19,6 +20,7 @@ import br.com.araujosamuel.cieloticketsales.MainActivity
  * 3. Redireciona para a MainActivity mantendo a stack de navegação
  * 4. Encerra a si mesma
  */
+@AndroidEntryPoint
 class ResponseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
