@@ -90,21 +90,29 @@ O app utiliza Deep Link, a abordagem **recomendada pela Cielo** para aplicativos
 6. Cielo chama de volta via: order://response?response={base64}
    ou em caso de erro:       order://response?error={base64}
        ↓
-7. ResponseActivity captura a URI e emite no PaymentResultChannel
+7. ResponseActivity captura a URI e redireciona para MainActivity via Intent
        ↓
-8. CheckoutViewModel processa o resultado via CieloDeepLinkService
+8. MainActivity emite a URI no PaymentResultChannel
        ↓
-9. UpdatePurchaseResultUseCase persiste o status no Room
+9. CheckoutViewModel processa o resultado via CieloDeepLinkService
        ↓
-10. Navegação automática para PurchaseResultScreen
+10. UpdatePurchaseResultUseCase persiste o status no Room
+       ↓
+11. Navegação automática para PurchaseResultScreen
 ```
 
 ### Configuração do AndroidManifest
 
 ```xml
-<!-- Permite detectar o serviço Cielo Smart (Android 11+) -->
+<!-- Permite detectar o serviço Cielo Smart (Android 11+ exige declaração explícita) -->
 <queries>
-    <package android:name="com.ads.lio.uriappclient" />
+    <package android:name="br.com.cielosmart.orderservice" />
+    <package android:name="com.ads.lio.uriappclient" /><!-- pacote legado LIO -->
+    <!-- Detecta qualquer app que trate o scheme lio:// -->
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="lio" />
+    </intent>
 </queries>
 
 <!-- Captura o retorno do pagamento -->

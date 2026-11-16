@@ -6,16 +6,18 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /**
- * Canal singleton para comunicar o resultado do pagamento Cielo da
- * ResponseActivity para o CheckoutViewModel.
+ * Canal singleton para entregar o resultado do pagamento Cielo ao CheckoutViewModel.
  *
- * Padrão escolhido: SharedFlow com extraBufferCapacity=1 para não perder
- * o evento caso o ViewModel ainda não esteja coletando.
+ * Fluxo:
+ *   ResponseActivity → Intent → MainActivity → [emit aqui] → CheckoutViewModel
  *
- * Alternativas consideradas:
- * - Intent extras na MainActivity: acoplamento entre Activities
- * - EventBus: biblioteca extra desnecessária
- * - SharedViewModel: exigiria escopo de Activity compartilhado
+ * A emissão é feita exclusivamente pela MainActivity (em onNewIntent/onCreate),
+ * garantindo fonte única. ResponseActivity apenas transporta a URI via Intent;
+ * emitir diretamente nela causaria double emission — o mesmo resultado chegaria
+ * duas vezes ao ViewModel, podendo contaminar um checkout futuro via buffer.
+ *
+ * SharedFlow com extraBufferCapacity=1: garante que o evento não seja perdido
+ * caso o ViewModel ainda não esteja coletando no momento da emissão.
  */
 object PaymentResultChannel {
     private val _results = MutableSharedFlow<Uri>(extraBufferCapacity = 1)

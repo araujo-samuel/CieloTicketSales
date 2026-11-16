@@ -155,17 +155,26 @@ O processo seguiu um fluxo PM-driven:
 
 ### ADR-006: `PaymentResultChannel` como comunicação entre Activities
 
-**Contexto**: `ResponseActivity` recebe o resultado do Cielo e precisa passar para `CheckoutViewModel`.
+**Contexto**: `ResponseActivity` recebe o URI de retorno do Cielo e precisa entregar o resultado ao `CheckoutViewModel`, que roda em outro escopo de Activity.
 
-**Opções consideradas**:
-1. Intent extras na MainActivity → acoplamento entre Activities
-2. EventBus (Otto, GreenBus) → biblioteca extra desnecessária
-3. SharedViewModel → exige escopo compartilhado de Activity
-4. `SharedFlow` singleton → simples, sem dependências extras
+**Decisão**: Intent de `ResponseActivity` → `MainActivity` + `SharedFlow` singleton (`PaymentResultChannel`)
 
-**Decisão**: `SharedFlow` singleton (`PaymentResultChannel`)
+**Fluxo implementado**:
+1. `ResponseActivity` captura a URI e redireciona para `MainActivity` via Intent com a URI como extra
+2. `MainActivity` recebe a Intent em `onNewIntent` e emite a URI no `PaymentResultChannel`
+3. `CheckoutViewModel` coleta o `PaymentResultChannel` e processa o resultado
 
-**Justificativa**: Padrão Kotlin idiomático, sem biblioteca adicional, `extraBufferCapacity=1` garante que o evento não seja perdido se o ViewModel ainda não está coletando.
+**Por que centralizar a emissão na MainActivity**:
+- `ResponseActivity` inicialmente emitia diretamente no canal *e* enviava a Intent — causando double emission: o `CheckoutViewModel` poderia receber o mesmo resultado duas vezes, e o segundo evento ficaria bufferizado para o próximo checkout
+- Centralizar em `MainActivity` garante fonte única de emissão, eliminando o risco de processar o resultado de um pagamento anterior em uma compra futura
+
+**Por que SharedFlow e não apenas Intent extras**:
+- `CheckoutViewModel` não tem acesso direto às Intents da Activity
+- `SharedFlow` com `extraBufferCapacity=1` desacopla o emissor (MainActivity) do consumidor (ViewModel), sem exigir escopo compartilhado de Activity
+
+**Alternativas descartadas**:
+- EventBus (Otto, GreenBus) → biblioteca extra desnecessária
+- SharedViewModel → exige escopo de Activity compartilhado explicitamente gerenciado
 
 ---
 
@@ -176,10 +185,11 @@ O processo seguiu um fluxo PM-driven:
 **Decisão**: MVI (Model-View-Intent) completo
 
 **Mudanças implementadas**:
-1. Cada ViewModel define uma `sealed class XIntent` como contrato único de entrada
+1. ViewModels com ações do usuário (`EventListViewModel`, `EventDetailViewModel`, `CheckoutViewModel`, `PurchaseHistoryViewModel`) definem uma `sealed class XIntent` como contrato único de entrada
 2. Um único método `processIntent(intent: XIntent)` substitui os métodos públicos dispersos
 3. Funções de lógica interna tornadas `private` — a UI só acessa `processIntent()` e o `StateFlow`
 4. `UiState` como `data class` imutável — sem mutações parciais expostas
+5. ViewModels somente de leitura (`PurchaseResultViewModel`) não definem Intent — expõem apenas estado; não há ação do usuário além de observar
 
 **Justificativa**:
 1. Fluxo de dados unidirecional: Intent → ViewModel → State → UI
