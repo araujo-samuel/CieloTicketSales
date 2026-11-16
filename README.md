@@ -13,6 +13,8 @@ App Android para venda de ingressos de eventos com pagamento integrado via Cielo
 - Dispositivo ou emulador Android com **minSdk 26** (Android 8.0+)
 - **Emulador Cielo Smart** instalado no mesmo dispositivo/emulador
 
+> ⚠️ **Restrição do Emulador Cielo Smart**: o emulador Cielo só funciona em dispositivos com **Android 7 a 10** (API 24–29). Versões a partir do Android 11 causam falha no recebimento do resultado do pagamento. Para testar localmente, use um emulador com **Android 9 (API 28)** ou **Android 10 (API 29)**.
+
 ### Instalar o Emulador Cielo Smart
 
 1. Baixe o APK do emulador: https://docs.cielo.com.br/cielo-smart/docs/baixando-o-emulador-cielo
