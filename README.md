@@ -39,7 +39,7 @@ Ou via linha de comando:
 
 ```bash
 ./gradlew test          # Testes unitários
-./gradlew connectedTest # Testes instrumentados (requer dispositivo)
+./gradlew connectedDebugAndroidTest # Testes instrumentados (requer dispositivo)
 ```
 
 ---
@@ -144,6 +144,7 @@ Para o emulador Cielo, são usados valores de placeholder (`CLIENT_ID_EMULADOR`)
 | **ZXing Core** | 3.5.3 | Geração de QR Code. Versão "core" sem dependência da UI Android — mais leve e sem Activities extras |
 | **Gson** | 2.11.0 | Serialização/deserialização JSON para o protocolo Cielo Deep Link. Estável, sem annotation processing |
 | **Kotlin Coroutines** | 1.9.0 | Programação assíncrona idiomática em Kotlin |
+| **Hilt** | 2.56.2 | Injeção de dependências com verificação em compile-time. `@HiltViewModel` com `SavedStateHandle` automático; padrão recomendado pelo Android Jetpack |
 | **MockK** | 1.13.12 | Mocking idiomático para Kotlin. Suporta mock de objetos Kotlin nativamente (vs Mockito que tem limitações com classes `final`) |
 
 ---
@@ -184,7 +185,7 @@ Para o emulador Cielo, são usados valores de placeholder (`CLIENT_ID_EMULADOR`)
 4. **Validação do QR Code**: endpoint para validar ingressos na entrada do evento
 5. **Notificações push**: confirmação de compra e lembretes do evento
 6. **Testes de integração com Room**: banco em memória para testar repositórios
-7. **Testes instrumentados**: fluxo completo da UI com Compose Testing
+7. **Testes instrumentados expandidos**: fluxo completo da UI com Compose Testing (atualmente coberto o smoke test de inicialização; faltam testes de navegação e pagamento end-to-end)
 8. **Cancelamento de compra**: integração com a API de cancelamento Cielo
 9. **Offline-first**: sincronização quando a conexão for reestabelecida
 10. **Acessibilidade**: talkback, contrastes, semântica nas telas Compose

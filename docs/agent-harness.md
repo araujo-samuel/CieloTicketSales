@@ -104,7 +104,7 @@ O processo seguiu um fluxo PM-driven:
 | Curva de aprendizado | Nenhuma | Baixa | Média |
 | Verbosidade | Alta (AppContainer) | Baixa (DSL) | Média (annotations) |
 | Verificação em compile-time | ❌ | ❌ | ✅ |
-| Integração com `@HiltViewModel` | ❌ | Parcial | ✅ Nativa |
+| Integração nativa com ViewModel | ❌ Manual (`Factory`) | ✅ Própria (`koinViewModel()`) | ✅ Nativa (`@HiltViewModel`) |
 | `SavedStateHandle` automático | ❌ | Manual | ✅ Automático |
 | Integração com Navigation Compose | Manual | Manual | ✅ `hiltViewModel()` |
 | Padrão Android / Google recomendado | ❌ | ❌ | ✅ |
@@ -214,7 +214,7 @@ O assistente de IA leu o arquivo `Case Android.pdf` e extraiu:
 | `docs.cielo.com.br/cielo-smart/docs/codigos-de-erro` | Erros em Base64 JSON: code 1=cancelado, 2=genérico, 3=falha, 4=autenticação | Tratamento de erros em `CieloDeepLinkService` |
 | `docs.cielo.com.br/cielo-smart/docs/modelos-de-integracao` | Dois modelos: Deep Link e Remote API | Confirmou Deep Link como melhor opção |
 | `github.com/DeveloperCielo/LIO-SDK-Sample-Integracao-Local` | Formato do JSON de request; campos de response (`authCode`, `cieloCode`); URL format `lio://payment?request={base64}&urlCallback=order://response` | Modelagem dos modelos de dados; URI format |
-| `adb logcat -s CheckoutService` (runtime) | Resposta real do Cielo: objeto `Order` com `status:"PAID"`, não `statusCode:1` | Corrigiu o parsing de resposta em `CieloDeepLinkService` |
+| Logcat (análise em runtime com emulador v1.61.8) | Resposta real do Cielo: objeto `Order` com `status:"PAID"`, não `statusCode:1`; Base64 com quebras de linha requer `Base64.DEFAULT` ao decodificar | Corrigiu o parsing de resposta em `CieloDeepLinkService` e `CieloOrderResponse` |
 
 ### 4.3 Restrições configuradas para a implementação
 
@@ -274,7 +274,7 @@ Foco em **cenários críticos de negócio**, não cobertura de linha:
 3. **Retry policy**: retentar automaticamente em erros de rede (não em erro de pagamento)
 4. **Logging estruturado**: `Timber` + analytics para rastrear falhas de pagamento em produção
 5. **Testes de integração**: Room em memória para testar os repositórios de verdade
-6. **Testes instrumentados**: Compose UI Testing para o fluxo completo
+6. **Testes instrumentados expandidos**: Compose UI Testing para navegação e fluxo de pagamento end-to-end (atualmente coberto o smoke test de inicialização)
 
 ### Trade-offs que seriam diferentes em um app de produção
 
