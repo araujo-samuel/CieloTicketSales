@@ -1,22 +1,21 @@
 package br.com.araujosamuel.cieloticketsales.presentation.checkout
 
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.data.cielo.CieloDeepLinkService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
 import br.com.araujosamuel.cieloticketsales.domain.usecase.GetPurchasesUseCase
 import br.com.araujosamuel.cieloticketsales.domain.usecase.UpdatePurchaseResultUseCase
 import br.com.araujosamuel.cieloticketsales.presentation.PaymentResultChannel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +23,18 @@ sealed class CheckoutIntent {
     data class SelectPaymentCode(val code: String) : CheckoutIntent()
     object InitiatePayment : CheckoutIntent()
     object NavigationConsumed : CheckoutIntent()
+    /** Enviado pela UI quando o Cielo Smart não está instalado no dispositivo */
+    object CieloNotFound : CheckoutIntent()
+}
+
+/**
+ * Eventos de efeito colateral emitidos pelo ViewModel para a UI executar.
+ * A UI é responsável por chamar startActivity e packageManager — o ViewModel
+ * apenas constrói a URI e delega a ação de navegação.
+ */
+sealed class CheckoutSideEffect {
+    data class LaunchCieloPayment(val uri: Uri) : CheckoutSideEffect()
+    data class CieloNotInstalled(val message: String) : CheckoutSideEffect()
 }
 
 data class CheckoutUiState(
@@ -37,7 +48,6 @@ data class CheckoutUiState(
 
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     private val getPurchasesUseCase: GetPurchasesUseCase,
     private val updatePurchaseResultUseCase: UpdatePurchaseResultUseCase,
@@ -48,6 +58,9 @@ class CheckoutViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CheckoutUiState(isLoading = true))
     val uiState: StateFlow<CheckoutUiState> = _uiState.asStateFlow()
+
+    private val _sideEffect = Channel<CheckoutSideEffect>(Channel.BUFFERED)
+    val sideEffect = _sideEffect.receiveAsFlow()
 
     init {
         loadPurchase()
@@ -87,6 +100,7 @@ class CheckoutViewModel @Inject constructor(
             is CheckoutIntent.SelectPaymentCode -> selectPaymentCode(intent.code)
             is CheckoutIntent.InitiatePayment -> initiatePayment()
             is CheckoutIntent.NavigationConsumed -> onNavigationConsumed()
+            is CheckoutIntent.CieloNotFound -> onCieloNotFound()
         }
     }
 
@@ -95,12 +109,13 @@ class CheckoutViewModel @Inject constructor(
     }
 
     /**
-     * Lança o Deep Link do Cielo Smart para processar o pagamento.
+     * Constrói a URI de pagamento e emite [CheckoutSideEffect.LaunchCieloPayment].
      *
-     * Usa o ApplicationContext injetado pelo Hilt — sem risco de memory leak,
-     * sem receber Context como parâmetro do intent (anti-pattern de ViewModel).
+     * O ViewModel não chama startActivity nem acessa packageManager — essas são
+     * responsabilidades da UI. A UI coleta o SideEffect, verifica se o Cielo está
+     * instalado e chama startActivity. Se não estiver, envia [CheckoutIntent.CieloNotFound].
      *
-     * Idempotência: a compra já foi criada com UUID único em CreatePurchaseOrderUseCase.
+     * Idempotência: a compra foi criada com UUID único em CreatePurchaseOrderUseCase.
      * Mesmo que o usuário clique em "Pagar" várias vezes, o orderId enviado ao Cielo
      * é sempre o mesmo UUID, o que previne cobranças duplicadas.
      */
@@ -119,22 +134,18 @@ class CheckoutViewModel @Inject constructor(
             quantity = purchase.quantity
         )
 
-        // Verifica se o Cielo Smart está instalado antes de lançar
-        val intent = Intent(Intent.ACTION_VIEW, paymentUri).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-
-        val resolveInfo = context.packageManager.queryIntentActivities(intent, 0)
-
-        if (resolveInfo.isNullOrEmpty()) {
-            _uiState.value = state.copy(
-                error = "Cielo Smart não encontrado. Instale o emulador Cielo para testar."
-            )
-            return
-        }
-
         _uiState.value = state.copy(isAwaitingCielo = true, error = null)
-        context.startActivity(intent)
+
+        viewModelScope.launch {
+            _sideEffect.send(CheckoutSideEffect.LaunchCieloPayment(paymentUri))
+        }
+    }
+
+    private fun onCieloNotFound() {
+        _uiState.value = _uiState.value.copy(
+            isAwaitingCielo = false,
+            error = "Cielo Smart não encontrado. Instale o emulador Cielo para testar."
+        )
     }
 
     private fun handlePaymentResponse(uri: Uri) {

@@ -1,5 +1,6 @@
 package br.com.araujosamuel.cieloticketsales.presentation.checkout
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -12,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +26,29 @@ fun CheckoutScreen(
     onNavigateToResult: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Coleta efeitos colaterais: lançar o app Cielo ou reportar que não está instalado
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is CheckoutSideEffect.LaunchCieloPayment -> {
+                    val intent = Intent(Intent.ACTION_VIEW, effect.uri).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    val resolveInfo = context.packageManager.queryIntentActivities(intent, 0)
+                    if (resolveInfo.isNullOrEmpty()) {
+                        viewModel.processIntent(CheckoutIntent.CieloNotFound)
+                    } else {
+                        context.startActivity(intent)
+                    }
+                }
+                is CheckoutSideEffect.CieloNotInstalled -> {
+                    viewModel.processIntent(CheckoutIntent.CieloNotFound)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(uiState.navigateToResultId) {
         uiState.navigateToResultId?.let { id ->
