@@ -12,7 +12,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,7 +24,6 @@ fun CheckoutScreen(
     onNavigateToResult: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     LaunchedEffect(uiState.navigateToResultId) {
         uiState.navigateToResultId?.let { id ->
@@ -170,7 +168,7 @@ fun CheckoutScreen(
 
                         // Botão principal
                         Button(
-                            onClick = { viewModel.processIntent(CheckoutIntent.InitiatePayment(context)) },
+                            onClick = { viewModel.processIntent(CheckoutIntent.InitiatePayment) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),

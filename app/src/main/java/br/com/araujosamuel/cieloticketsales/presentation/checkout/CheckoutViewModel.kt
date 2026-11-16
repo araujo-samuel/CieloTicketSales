@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.araujosamuel.cieloticketsales.data.cielo.CieloDeepLinkService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
 import br.com.araujosamuel.cieloticketsales.domain.usecase.GetPurchasesUseCase
@@ -21,7 +22,7 @@ import javax.inject.Inject
 
 sealed class CheckoutIntent {
     data class SelectPaymentCode(val code: String) : CheckoutIntent()
-    data class InitiatePayment(val context: Context) : CheckoutIntent()
+    object InitiatePayment : CheckoutIntent()
     object NavigationConsumed : CheckoutIntent()
 }
 
@@ -36,6 +37,7 @@ data class CheckoutUiState(
 
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     private val getPurchasesUseCase: GetPurchasesUseCase,
     private val updatePurchaseResultUseCase: UpdatePurchaseResultUseCase,
@@ -83,7 +85,7 @@ class CheckoutViewModel @Inject constructor(
     fun processIntent(intent: CheckoutIntent) {
         when (intent) {
             is CheckoutIntent.SelectPaymentCode -> selectPaymentCode(intent.code)
-            is CheckoutIntent.InitiatePayment -> initiatePayment(intent.context)
+            is CheckoutIntent.InitiatePayment -> initiatePayment()
             is CheckoutIntent.NavigationConsumed -> onNavigationConsumed()
         }
     }
@@ -95,11 +97,14 @@ class CheckoutViewModel @Inject constructor(
     /**
      * Lança o Deep Link do Cielo Smart para processar o pagamento.
      *
+     * Usa o ApplicationContext injetado pelo Hilt — sem risco de memory leak,
+     * sem receber Context como parâmetro do intent (anti-pattern de ViewModel).
+     *
      * Idempotência: a compra já foi criada com UUID único em CreatePurchaseOrderUseCase.
      * Mesmo que o usuário clique em "Pagar" várias vezes, o orderId enviado ao Cielo
      * é sempre o mesmo UUID, o que previne cobranças duplicadas.
      */
-    private fun initiatePayment(context: Context) {
+    private fun initiatePayment() {
         val state = _uiState.value
         val purchase = state.purchase ?: return
 
@@ -119,8 +124,7 @@ class CheckoutViewModel @Inject constructor(
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
 
-        val packageManager = context.packageManager
-        val resolveInfo = packageManager.queryIntentActivities(intent, 0)
+        val resolveInfo = context.packageManager.queryIntentActivities(intent, 0)
 
         if (resolveInfo.isNullOrEmpty()) {
             _uiState.value = state.copy(

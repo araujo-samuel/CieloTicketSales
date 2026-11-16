@@ -3,8 +3,9 @@ package br.com.araujosamuel.cieloticketsales.domain.usecase
 import br.com.araujosamuel.cieloticketsales.data.repository.PurchaseRepository
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class GetPurchasesUseCase(
+class GetPurchasesUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository
 ) {
     operator fun invoke(): Flow<List<Purchase>> = purchaseRepository.getAllPurchases()

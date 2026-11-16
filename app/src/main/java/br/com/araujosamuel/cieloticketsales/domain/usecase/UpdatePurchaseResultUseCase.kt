@@ -3,6 +3,7 @@ package br.com.araujosamuel.cieloticketsales.domain.usecase
 import br.com.araujosamuel.cieloticketsales.data.cielo.model.CieloPaymentResponse
 import br.com.araujosamuel.cieloticketsales.data.repository.PurchaseRepository
 import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
+import javax.inject.Inject
 
 /**
  * Mapeia a resposta Cielo para PurchaseStatus e persiste o resultado no DB.
@@ -12,7 +13,7 @@ import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
  *   2 → CANCELLED (cancelado pelo usuário ou pelo terminal)
  *   outro → DENIED (falha no processamento)
  */
-class UpdatePurchaseResultUseCase(
+class UpdatePurchaseResultUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository
 ) {
     suspend operator fun invoke(purchaseId: String, response: CieloPaymentResponse) {

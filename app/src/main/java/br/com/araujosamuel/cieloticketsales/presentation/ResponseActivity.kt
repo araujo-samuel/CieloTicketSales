@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import br.com.araujosamuel.cieloticketsales.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 
+
 /**
  * Activity responsável por capturar o retorno do Cielo Smart via Deep Link.
  *
@@ -16,9 +17,11 @@ import dagger.hilt.android.AndroidEntryPoint
  *
  * Esta Activity:
  * 1. Captura a URI
- * 2. Emite no PaymentResultChannel para o CheckoutViewModel processar
- * 3. Redireciona para a MainActivity mantendo a stack de navegação
- * 4. Encerra a si mesma
+ * 2. Redireciona para a MainActivity passando a URI via Intent
+ * 3. Encerra a si mesma
+ *
+ * A emissão no PaymentResultChannel é feita exclusivamente pela MainActivity,
+ * que é o ponto de entrada único — evita double-emission no canal compartilhado.
  */
 @AndroidEntryPoint
 class ResponseActivity : AppCompatActivity() {
@@ -38,10 +41,6 @@ class ResponseActivity : AppCompatActivity() {
             redirectToMain(null)
             return
         }
-
-        // Emite o resultado para o CheckoutViewModel via canal compartilhado
-        PaymentResultChannel.emit(uri)
-
         redirectToMain(uri)
     }
 

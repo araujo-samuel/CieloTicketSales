@@ -1,6 +1,7 @@
 package br.com.araujosamuel.cieloticketsales.domain.usecase
 
 import br.com.araujosamuel.cieloticketsales.data.repository.PurchaseRepository
+import javax.inject.Inject
 import br.com.araujosamuel.cieloticketsales.domain.model.Event
 import br.com.araujosamuel.cieloticketsales.domain.model.Purchase
 import br.com.araujosamuel.cieloticketsales.domain.model.PurchaseStatus
@@ -17,7 +18,7 @@ import java.util.UUID
  * O UUID gerado é o orderId enviado ao Cielo, o que garante que reenvios
  * da mesma transação (ex: app fechado e reaberto) não gerem cobranças duplicadas.
  */
-class CreatePurchaseOrderUseCase(
+class CreatePurchaseOrderUseCase @Inject constructor(
     private val purchaseRepository: PurchaseRepository
 ) {
     suspend operator fun invoke(event: Event, quantity: Int): Purchase {

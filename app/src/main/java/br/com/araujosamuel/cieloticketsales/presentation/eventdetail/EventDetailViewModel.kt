@@ -3,9 +3,9 @@ package br.com.araujosamuel.cieloticketsales.presentation.eventdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.araujosamuel.cieloticketsales.data.repository.EventRepository
 import br.com.araujosamuel.cieloticketsales.domain.model.Event
 import br.com.araujosamuel.cieloticketsales.domain.usecase.CreatePurchaseOrderUseCase
+import br.com.araujosamuel.cieloticketsales.domain.usecase.GetEventByIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +33,7 @@ sealed class EventDetailIntent {
 @HiltViewModel
 class EventDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val eventRepository: EventRepository,
+    private val getEventByIdUseCase: GetEventByIdUseCase,
     private val createPurchaseOrderUseCase: CreatePurchaseOrderUseCase
 ) : ViewModel() {
 
@@ -57,7 +57,7 @@ class EventDetailViewModel @Inject constructor(
 
     private fun loadEvent() {
         viewModelScope.launch {
-            runCatching { eventRepository.getEventById(eventId) }
+            runCatching { getEventByIdUseCase(eventId) }
                 .onSuccess { event ->
                     _uiState.value = EventDetailUiState(event = event)
                 }

@@ -8,10 +8,6 @@ import br.com.araujosamuel.cieloticketsales.data.repository.EventRepository
 import br.com.araujosamuel.cieloticketsales.data.repository.EventRepositoryImpl
 import br.com.araujosamuel.cieloticketsales.data.repository.PurchaseRepository
 import br.com.araujosamuel.cieloticketsales.data.repository.PurchaseRepositoryImpl
-import br.com.araujosamuel.cieloticketsales.domain.usecase.CreatePurchaseOrderUseCase
-import br.com.araujosamuel.cieloticketsales.domain.usecase.GetEventsUseCase
-import br.com.araujosamuel.cieloticketsales.domain.usecase.GetPurchasesUseCase
-import br.com.araujosamuel.cieloticketsales.domain.usecase.UpdatePurchaseResultUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -49,26 +45,4 @@ object AppModule {
     @Singleton
     fun provideCieloDeepLinkService(): CieloDeepLinkService =
         CieloDeepLinkService()
-
-    // --- Domain layer ---
-
-    @Provides
-    @Singleton
-    fun provideGetEventsUseCase(eventRepository: EventRepository): GetEventsUseCase =
-        GetEventsUseCase(eventRepository)
-
-    @Provides
-    @Singleton
-    fun provideCreatePurchaseOrderUseCase(purchaseRepository: PurchaseRepository): CreatePurchaseOrderUseCase =
-        CreatePurchaseOrderUseCase(purchaseRepository)
-
-    @Provides
-    @Singleton
-    fun provideUpdatePurchaseResultUseCase(purchaseRepository: PurchaseRepository): UpdatePurchaseResultUseCase =
-        UpdatePurchaseResultUseCase(purchaseRepository)
-
-    @Provides
-    @Singleton
-    fun provideGetPurchasesUseCase(purchaseRepository: PurchaseRepository): GetPurchasesUseCase =
-        GetPurchasesUseCase(purchaseRepository)
 }
