@@ -190,14 +190,16 @@ O processo seguiu um fluxo PM-driven:
 3. Funções de lógica interna tornadas `private` — a UI só acessa `processIntent()` e o `StateFlow`
 4. `UiState` como `data class` imutável — sem mutações parciais expostas
 5. ViewModels somente de leitura (`PurchaseResultViewModel`) não definem Intent — expõem apenas estado; não há ação do usuário além de observar
+6. Efeitos colaterais de um disparo (`CheckoutViewModel`) entregues via `Channel<CheckoutSideEffect>` + `receiveAsFlow()` — o ViewModel **não** acessa `Context`, `startActivity` nem `packageManager`; emite apenas uma `sealed class CheckoutSideEffect` que a UI coleta em `LaunchedEffect(Unit)` e executa
 
 **Justificativa**:
-1. Fluxo de dados unidirecional: Intent → ViewModel → State → UI
+1. Fluxo de dados unidirecional: Intent → ViewModel → State → UI; efeitos colaterais via SideEffect Channel
 2. Facilita o rastreamento de bugs — cada evento tem origem e destino claros
 3. Mais testável: um teste por intent; sem necessidade de testar combinações de chamadas de métodos
 4. Separação explícita entre o que a UI pode fazer (intents) e o que ela não pode (implementação privada)
+5. ViewModel sem `Context` — sem referência ao ciclo de vida de Activity; sem risco de memory leak
 
-**Trade-off aceitado**: Um pouco mais de boilerplate (sealed class por tela)
+**Trade-off aceitado**: Um pouco mais de boilerplate (sealed class por tela + sealed class de SideEffect onde necessário)
 
 ---
 
